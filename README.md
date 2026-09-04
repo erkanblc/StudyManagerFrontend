@@ -2,9 +2,10 @@
 
 **Study Manager** is a full-stack learning time tracking platform. Students set learning goals, plan study sessions, run a live timer, log offline study time, and review progress. Administrators manage users, roles, goals, settings, login history, and pending admin registrations.
 
-This repository is the **React frontend**. The REST API lives in the sibling [`backend`](../backend) directory.
+This repository is the **React frontend** (`StudyManagerFrontend`). The REST API lives in the sibling [`StudyManagerBackend`](../StudyManagerBackend) / [`backend`](../backend) directory.
 
-> German version: [`README-DE.md`](README-DE.md)
+> Other languages: [Türkçe](README_TR.md) · [Deutsch](README_DE.md)  
+> Architecture diagrams: [`architecture-uml.md`](architecture-uml.md)
 
 ---
 
@@ -81,6 +82,7 @@ Milestones with a due date appear as an orange trophy marker on calendar days (M
 - Student registration with immediate access
 - Admin candidate registration with approval workflow (`PENDING` → `APPROVED` / `REJECTED`)
 - Role-based routing: admins → `/admin`, students → `/`
+- Automatic token refresh via Axios interceptor (`/api/auth/refresh`)
 
 ---
 
@@ -98,7 +100,7 @@ Milestones with a due date appear as an orange trophy marker on calendar days (M
 | Charts | Recharts |
 | Date handling | Day.js |
 
-### Backend ([`../backend`](../backend))
+### Backend (sibling repo)
 
 | Layer | Technology |
 |-------|------------|
@@ -118,7 +120,8 @@ Milestones with a due date appear as an orange trophy marker on calendar days (M
 flowchart LR
   subgraph client [Frontend - React]
     UI[MUI Pages & Components]
-    CTX[Auth & Notification Context]
+    CTX[Auth / Data / Notification Context]
+    Hooks[Custom Hooks]
     API[Axios API Layer]
   end
 
@@ -130,12 +133,14 @@ flowchart LR
 
   DB[(MySQL)]
 
-  UI --> CTX --> API
+  UI --> CTX --> Hooks --> API
   API -->|"/api/* via Vite proxy"| CTRL
   CTRL --> SVC --> REPO --> DB
 ```
 
-During development, Vite proxies `/api` requests to `http://localhost:8080`, avoiding CORS issues on the client.
+During development, Vite proxies `/api` requests to `http://127.0.0.1:8080`, avoiding CORS issues on the client.
+
+Detailed UML (component, sequence, class-style, deployment): see [`architecture-uml.md`](architecture-uml.md).
 
 ---
 
@@ -163,7 +168,7 @@ CREATE DATABASE study_manager_db
 
 ### 2. Configure the backend
 
-Edit `../backend/src/main/resources/application.properties`:
+Edit the backend `src/main/resources/application.properties`:
 
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/study_manager_db?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=Europe/Berlin
@@ -179,9 +184,9 @@ jwt.expiration=86400000
 ### 3. Start the backend
 
 ```bash
-cd ../backend
-./mvnw spring-boot:run        # Linux / macOS
-.\mvnw.cmd spring-boot:run    # Windows
+cd ../StudyManagerBackend   # or ../backend — depending on your folder name
+./mvnw spring-boot:run      # Linux / macOS
+.\mvnw.cmd spring-boot:run  # Windows
 ```
 
 API base URL:
@@ -194,8 +199,9 @@ On first startup, `DataInitializer` seeds default roles and test users if they d
 
 ### 4. Install frontend dependencies
 
+From this repository root (`StudyManagerFrontend`):
+
 ```bash
-cd frontend
 npm install
 ```
 
@@ -223,7 +229,7 @@ http://localhost:5173
 server: {
   proxy: {
     '/api': {
-      target: 'http://localhost:8080',
+      target: 'http://127.0.0.1:8080',
       changeOrigin: true,
     },
   },
@@ -254,7 +260,7 @@ Admins redirect to `/admin` after login. Students redirect to `/`.
 
 ## Available Scripts
 
-From the `frontend` directory:
+From this repository:
 
 | Command | Description |
 |---------|-------------|
@@ -263,7 +269,7 @@ From the `frontend` directory:
 | `npm run preview` | Preview the production build |
 | `npm run lint` | Run ESLint |
 
-From `../backend`:
+From the backend repository:
 
 | Command | Description |
 |---------|-------------|
@@ -313,25 +319,27 @@ From `../backend`:
 
 ```
 EducationPlatform/
-├── backend/                          # Spring Boot REST API
-│   └── src/main/java/com/studymanager/
-│       ├── config/                   # Security, seed data, migrations
-│       ├── controller/               # REST endpoints
-│       ├── dto/                      # Request / response models
-│       ├── entity/                   # JPA entities
-│       ├── repository/               # Data access
-│       └── service/                  # Business logic
+├── StudyManagerBackend/              # Spring Boot REST API (sibling)
+│   └── src/main/java/.../
+│       ├── config/
+│       ├── controller/
+│       ├── dto/
+│       ├── entity/
+│       ├── repository/
+│       └── service/
 │
-└── frontend/                         # React SPA (this repo)
+└── StudyManagerFrontend/             # React SPA (this repo)
     ├── public/
     │   └── study-manager-logo.png
     ├── README.md                     # English (this file)
-    ├── README-DE.md                  # German
+    ├── README_TR.md                  # Turkish
+    ├── README_DE.md                  # German
+    ├── architecture-uml.md           # UML diagrams
     └── src/
         ├── api/                      # Axios API modules
         ├── components/               # Shared UI (layout, calendar, dialogs)
-        ├── context/                  # Auth & notification state
-        ├── hooks/                    # Sessions, plans, milestones, …
+        ├── context/                  # Auth, Data, Notification state
+        ├── hooks/                    # Sessions, plans, milestones
         ├── pages/                    # Student + admin pages
         │   └── admin/
         ├── utils/                    # Dates, calendar, goals, plans, roles
@@ -422,6 +430,7 @@ Developed for educational purposes. Add a license file if you distribute or open
 
 ## Related Documentation
 
-- Frontend (German): [`README-DE.md`](README-DE.md)
-- Backend (English): [`../backend/README.md`](../backend/README.md)
-- Backend (German): [`../backend/README-DE.md`](../backend/README-DE.md)
+- Frontend (Turkish): [`README_TR.md`](README_TR.md)
+- Frontend (German): [`README_DE.md`](README_DE.md)
+- Architecture UML: [`architecture-uml.md`](architecture-uml.md)
+- Backend README (if present in sibling repo)
